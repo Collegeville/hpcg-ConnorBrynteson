@@ -1,0 +1,32 @@
+# Specify the compiler
+CXX = g++
+
+# Specify the target
+TARGET = main
+
+# List of source files
+SRCS = main.cpp GenerateGeometry.cpp ComputeRankOfMatrixRow.cpp
+
+# List of object files
+OBJS = $(SRCS:.cpp=.o)
+
+# Compilation flags
+CXXFLAGS = -Wall -std=c++11
+
+# Linking flags
+LDFLAGS = 
+
+# Rule to link the program
+$(TARGET): $(OBJS)
+    $(CXX) $(LDFLAGS) -o $(TARGET) $(OBJS)
+
+# Rule to compile source files
+.cpp.o:
+    $(CXX) $(CXXFLAGS) -c $<  -o $@
+
+# Rule to clean intermediate files
+clean:
+    rm -f $(OBJS) $(TARGET)
+
+# Rule to make the program
+all: $(TARGET)
