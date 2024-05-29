@@ -2,8 +2,8 @@
 #include <GenerateGeometry.hpp>
 #include <ReportResults.hpp>
 
-int
-main() {
+int main()
+{
   int comm_size = 1, comm_rank = 0, numThreads = 1;
   int nx = 13, ny = 17, nz = 19;
   Geometry geom;
@@ -17,11 +17,12 @@ main() {
   TestSymmetryData testsymmetry_data;
   TestNormsData testnorms_data;
   int global_failure;
-
-  GenerateGeometry( comm_size, comm_rank, numThreads, nx, ny, nz, &geom);
+  // This is missing abunch of ints
+  GenerateGeometry(comm_size, comm_rank, numThreads, nx, ny, nz, &geom);
 
   Af = &A;
-  for (int i=1; i<numberOfMgLevels; ++i) {
+  for (int i = 1; i < numberOfMgLevels; ++i)
+  {
     Af->geom = &geom;
 
     MGData *mgData = new MGData();
@@ -32,9 +33,9 @@ main() {
     Af->Ac = new SparseMatrix();
     Af = Af->Ac;
   }
-
-  ReportResults( A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters, times,
-    testcg_data, testsymmetry_data, testnorms_data, global_failure );
+  // Missing a bool for quick path
+  ReportResults(A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters, times,
+                testcg_data, testsymmetry_data, testnorms_data, global_failure);
 
   return 0;
 }
