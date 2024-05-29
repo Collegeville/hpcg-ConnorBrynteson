@@ -18,9 +18,7 @@ int main()
   TestNormsData testnorms_data;
   int global_failure;
   // This is missing abunch of ints
-  GenerateGeometry(comm_size, comm_rank, numThreads, nx, ny, nz, &geom);
-
-  Af = &A;
+  GenerateGeometry(comm_size, comm_rank, numThreads, 0, 0, 0, nx, ny, nz, 0, 0, 0, &geom);
   for (int i = 1; i < numberOfMgLevels; ++i)
   {
     Af->geom = &geom;

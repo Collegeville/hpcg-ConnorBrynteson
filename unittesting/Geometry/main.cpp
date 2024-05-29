@@ -40,8 +40,13 @@ int main(int argc, char *argv[])
   int numThreads = 1;
   int nx, ny, nz;
   nx = ny = nz = 200;
-  // Missing the ints should be 12 values
-  GenerateGeometry(size, rank, numThreads, nx, ny, nz, geom);
+  /*
+  Missing the ints should be 12 values
+  Due to the fact that you can not mix default arguments with non default arguments in C++ like GenerateGeometry(size, rank, numThreads, defualt, default, default, nx, ny, nz, default, default, default, geomPtr)
+  Setting up the default values for the function call here will the best
+  GenerateGeometry(size, rank, params.numThreads, params.pz, params.zl, params.zu, nx, ny, nz, params.npx, params.npy, params.npz, geom);
+  */
+  GenerateGeometry(size, rank, numThreads, 0, 0, 0, nx, ny, nz, 0, 0, 0, &geom);
 
   global_int_t index = ((global_int_t)(nx * ny * nz)) * size - 1;
   std::cout << "Global Index = " << index << std::endl;
