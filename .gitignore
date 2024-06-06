@@ -5,5 +5,6 @@ bin/HPCG-Benchmark_3*.txt
 bin/xhpcg
 bin/hpcg20*.txt
 .DS_Store
-docgen/apiCheckcpp.cpp
 docgen/commitMessages.md
+docgen/output.md
+docgen/output_test.md
