@@ -8,3 +8,5 @@ bin/hpcg20*.txt
 docgen/commitMessages.md
 docgen/output.md
 docgen/output_test.md
+.vscode/
+build/
