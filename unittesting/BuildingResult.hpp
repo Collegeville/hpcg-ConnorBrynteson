@@ -5,6 +5,6 @@
 #include <fstream>
 using namespace std;
 
-void Result_Gen(const std::string TestName, bool Result, bool Run, std::ofstream &file);
+void Result_Gen(const std::string TestName, bool Result, std::ofstream &file);
 
 #endif

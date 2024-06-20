@@ -27,14 +27,13 @@
 #endif
 
 #if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
-#include <fstream>
 using std::endl;
 #include "hpcg.hpp"
+#include <fstream>
 #endif
 #include <cassert>
 
 #include "GenerateProblem_ref.hpp"
-
 
 /*!
   Reference version of GenerateProblem to generate the sparse matrix, right hand side, initial guess, and exact solution.
@@ -47,7 +46,8 @@ using std::endl;
   @see GenerateGeometry
 */
 
-void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexact) {
+void GenerateProblem_ref(SparseMatrix &A, Vector *b, Vector *x, Vector *xexact)
+{
 
   // Make local copies of geometry information.  Use global_int_t since the RHS products in the calculations
   // below may result in global range values.
@@ -61,40 +61,46 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
   global_int_t giy0 = A.geom->giy0;
   global_int_t giz0 = A.geom->giz0;
 
-  local_int_t localNumberOfRows = nx*ny*nz; // This is the size of our subblock
+  local_int_t localNumberOfRows = nx * ny * nz; // This is the size of our subblock
   // If this assert fails, it most likely means that the local_int_t is set to int and should be set to long long
-  assert(localNumberOfRows>0); // Throw an exception of the number of rows is less than zero (can happen if int overflow)
+  assert(localNumberOfRows > 0);           // Throw an exception of the number of rows is less than zero (can happen if int overflow)
   local_int_t numberOfNonzerosPerRow = 27; // We are approximating a 27-point finite element/volume/difference 3D stencil
 
-  global_int_t totalNumberOfRows = gnx*gny*gnz; // Total number of grid points in mesh
+  global_int_t totalNumberOfRows = gnx * gny * gnz; // Total number of grid points in mesh
   // If this assert fails, it most likely means that the global_int_t is set to int and should be set to long long
-  assert(totalNumberOfRows>0); // Throw an exception of the number of rows is less than zero (can happen if int overflow)
-
+  assert(totalNumberOfRows > 0); // Throw an exception of the number of rows is less than zero (can happen if int overflow)
 
   // Allocate arrays that are of length localNumberOfRows
-  char * nonzerosInRow = new char[localNumberOfRows];
-  global_int_t ** mtxIndG = new global_int_t*[localNumberOfRows];
-  local_int_t  ** mtxIndL = new local_int_t*[localNumberOfRows];
-  double ** matrixValues = new double*[localNumberOfRows];
-  double ** matrixDiagonal = new double*[localNumberOfRows];
+  char *nonzerosInRow = new char[localNumberOfRows];
+  global_int_t **mtxIndG = new global_int_t *[localNumberOfRows];
+  local_int_t **mtxIndL = new local_int_t *[localNumberOfRows];
+  double **matrixValues = new double *[localNumberOfRows];
+  double **matrixDiagonal = new double *[localNumberOfRows];
 
-  if (b!=0) InitializeVector(*b, localNumberOfRows);
-  if (x!=0) InitializeVector(*x, localNumberOfRows);
-  if (xexact!=0) InitializeVector(*xexact, localNumberOfRows);
-  double * bv = 0;
-  double * xv = 0;
-  double * xexactv = 0;
-  if (b!=0) bv = b->values; // Only compute exact solution if requested
-  if (x!=0) xv = x->values; // Only compute exact solution if requested
-  if (xexact!=0) xexactv = xexact->values; // Only compute exact solution if requested
+  if (b != 0)
+    InitializeVector(*b, localNumberOfRows);
+  if (x != 0)
+    InitializeVector(*x, localNumberOfRows);
+  if (xexact != 0)
+    InitializeVector(*xexact, localNumberOfRows);
+  double *bv = 0;
+  double *xv = 0;
+  double *xexactv = 0;
+  if (b != 0)
+    bv = b->values; // Only compute exact solution if requested
+  if (x != 0)
+    xv = x->values; // Only compute exact solution if requested
+  if (xexact != 0)
+    xexactv = xexact->values; // Only compute exact solution if requested
   A.localToGlobalMap.resize(localNumberOfRows);
 
   // Use a parallel loop to do initial assignment:
   // distributes the physical placement of arrays of pointers across the memory system
 #ifndef HPCG_NO_OPENMP
-  #pragma omp parallel for
+#pragma omp parallel for
 #endif
-  for (local_int_t i=0; i< localNumberOfRows; ++i) {
+  for (local_int_t i = 0; i < localNumberOfRows; ++i)
+  {
     matrixValues[i] = 0;
     matrixDiagonal[i] = 0;
     mtxIndG[i] = 0;
@@ -103,12 +109,12 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
 
 #ifndef HPCG_CONTIGUOUS_ARRAYS
   // Now allocate the arrays pointed to
-  for (local_int_t i=0; i< localNumberOfRows; ++i)
+  for (local_int_t i = 0; i < localNumberOfRows; ++i)
     mtxIndL[i] = new local_int_t[numberOfNonzerosPerRow];
-  for (local_int_t i=0; i< localNumberOfRows; ++i)
+  for (local_int_t i = 0; i < localNumberOfRows; ++i)
     matrixValues[i] = new double[numberOfNonzerosPerRow];
-  for (local_int_t i=0; i< localNumberOfRows; ++i)
-   mtxIndG[i] = new global_int_t[numberOfNonzerosPerRow];
+  for (local_int_t i = 0; i < localNumberOfRows; ++i)
+    mtxIndG[i] = new global_int_t[numberOfNonzerosPerRow];
 
 #else
   // Now allocate the arrays pointed to
@@ -116,29 +122,33 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
   matrixValues[0] = new double[localNumberOfRows * numberOfNonzerosPerRow];
   mtxIndG[0] = new global_int_t[localNumberOfRows * numberOfNonzerosPerRow];
 
-  for (local_int_t i=1; i< localNumberOfRows; ++i) {
-  mtxIndL[i] = mtxIndL[0] + i * numberOfNonzerosPerRow;
-  matrixValues[i] = matrixValues[0] + i * numberOfNonzerosPerRow;
-  mtxIndG[i] = mtxIndG[0] + i * numberOfNonzerosPerRow;
+  for (local_int_t i = 1; i < localNumberOfRows; ++i)
+  {
+    mtxIndL[i] = mtxIndL[0] + i * numberOfNonzerosPerRow;
+    matrixValues[i] = matrixValues[0] + i * numberOfNonzerosPerRow;
+    mtxIndG[i] = mtxIndG[0] + i * numberOfNonzerosPerRow;
   }
 #endif
 
   local_int_t localNumberOfNonzeros = 0;
   // TODO:  This triply nested loop could be flattened or use nested parallelism
 #ifndef HPCG_NO_OPENMP
-  #pragma omp parallel for
+#pragma omp parallel for
 #endif
-  for (local_int_t iz=0; iz<nz; iz++) {
-    global_int_t giz = giz0+iz;
-    for (local_int_t iy=0; iy<ny; iy++) {
-      global_int_t giy = giy0+iy;
-      for (local_int_t ix=0; ix<nx; ix++) {
-        global_int_t gix = gix0+ix;
-        local_int_t currentLocalRow = iz*nx*ny+iy*nx+ix;
-        global_int_t currentGlobalRow = giz*gnx*gny+giy*gnx+gix;
+  for (local_int_t iz = 0; iz < nz; iz++)
+  {
+    global_int_t giz = giz0 + iz;
+    for (local_int_t iy = 0; iy < ny; iy++)
+    {
+      global_int_t giy = giy0 + iy;
+      for (local_int_t ix = 0; ix < nx; ix++)
+      {
+        global_int_t gix = gix0 + ix;
+        local_int_t currentLocalRow = iz * nx * ny + iy * nx + ix;
+        global_int_t currentGlobalRow = giz * gnx * gny + giy * gnx + gix;
 #ifndef HPCG_NO_OPENMP
-// C++ std::map is not threadsafe for writing
-        #pragma omp critical
+        // C++ std::map is not threadsafe for writing
+#pragma omp critical
 #endif
         A.globalToLocalMap[currentGlobalRow] = currentLocalRow;
 
@@ -147,19 +157,28 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
         HPCG_fout << " rank, globalRow, localRow = " << A.geom->rank << " " << currentGlobalRow << " " << A.globalToLocalMap[currentGlobalRow] << endl;
 #endif
         char numberOfNonzerosInRow = 0;
-        double * currentValuePointer = matrixValues[currentLocalRow]; // Pointer to current value in current row
-        global_int_t * currentIndexPointerG = mtxIndG[currentLocalRow]; // Pointer to current index in current row
-        for (int sz=-1; sz<=1; sz++) {
-          if (giz+sz>-1 && giz+sz<gnz) {
-            for (int sy=-1; sy<=1; sy++) {
-              if (giy+sy>-1 && giy+sy<gny) {
-                for (int sx=-1; sx<=1; sx++) {
-                  if (gix+sx>-1 && gix+sx<gnx) {
-                    global_int_t curcol = currentGlobalRow+sz*gnx*gny+sy*gnx+sx;
-                    if (curcol==currentGlobalRow) {
+        double *currentValuePointer = matrixValues[currentLocalRow];   // Pointer to current value in current row
+        global_int_t *currentIndexPointerG = mtxIndG[currentLocalRow]; // Pointer to current index in current row
+        for (int sz = -1; sz <= 1; sz++)
+        {
+          if (giz + sz > -1 && giz + sz < gnz)
+          {
+            for (int sy = -1; sy <= 1; sy++)
+            {
+              if (giy + sy > -1 && giy + sy < gny)
+              {
+                for (int sx = -1; sx <= 1; sx++)
+                {
+                  if (gix + sx > -1 && gix + sx < gnx)
+                  {
+                    global_int_t curcol = currentGlobalRow + sz * gnx * gny + sy * gnx + sx;
+                    if (curcol == currentGlobalRow)
+                    {
                       matrixDiagonal[currentLocalRow] = currentValuePointer;
                       *currentValuePointer++ = 26.0;
-                    } else {
+                    }
+                    else
+                    {
                       *currentValuePointer++ = -1.0;
                     }
                     *currentIndexPointerG++ = curcol;
@@ -172,18 +191,21 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
         } // end sz loop
         nonzerosInRow[currentLocalRow] = numberOfNonzerosInRow;
 #ifndef HPCG_NO_OPENMP
-        #pragma omp critical
+#pragma omp critical
 #endif
         localNumberOfNonzeros += numberOfNonzerosInRow; // Protect this with an atomic
-        if (b!=0)      bv[currentLocalRow] = 26.0 - ((double) (numberOfNonzerosInRow-1));
-        if (x!=0)      xv[currentLocalRow] = 0.0;
-        if (xexact!=0) xexactv[currentLocalRow] = 1.0;
+        if (b != 0)
+          bv[currentLocalRow] = 26.0 - ((double)(numberOfNonzerosInRow - 1));
+        if (x != 0)
+          xv[currentLocalRow] = 0.0;
+        if (xexact != 0)
+          xexactv[currentLocalRow] = 1.0;
       } // end ix loop
     } // end iy loop
   } // end iz loop
 #ifdef HPCG_DETAILED_DEBUG
-  HPCG_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
-      << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfNonzeros<< " nonzeros." <<endl;
+  HPCG_fout << "Process " << A.geom->rank << " of " << A.geom->size << " has " << localNumberOfRows << " rows." << endl
+            << "Process " << A.geom->rank << " of " << A.geom->size << " has " << localNumberOfNonzeros << " nonzeros." << endl;
 #endif
 
   global_int_t totalNumberOfNonzeros = 0;
@@ -201,7 +223,7 @@ void GenerateProblem_ref(SparseMatrix & A, Vector * b, Vector * x, Vector * xexa
 #endif
   // If this assert fails, it most likely means that the global_int_t is set to int and should be set to long long
   // This assert is usually the first to fail as problem size increases beyond the 32-bit integer range.
-  assert(totalNumberOfNonzeros>0); // Throw an exception of the number of nonzeros is less than zero (can happen if int overflow)
+  assert(totalNumberOfNonzeros > 0); // Throw an exception of the number of nonzeros is less than zero (can happen if int overflow)
 
   A.title = 0;
   A.totalNumberOfRows = totalNumberOfRows;
