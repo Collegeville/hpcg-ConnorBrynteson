@@ -1,4 +1,5 @@
-
+//This is not handling memory in the right way
+//Segmentation fault (core dumped) is the current result looking into where this might be happening
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

@@ -1,6 +1,6 @@
 # Compiler
 MPICXX = mpicxx
-CXXFLAGS = -Wall -O2 -std=c++11
+CXXFLAGS = -Wall -O2 -std=c++11 -fopenmp -g
 
 # Include directories
 INCLUDES = -I.
@@ -8,7 +8,12 @@ INCLUDES = -I.
 # Source files
 SRCS = BuildingResult.cpp \
        CompareGeo.cpp \
-       TestSuit.cpp
+       TestSuit.cpp \
+       ../GenerateProblem_ref.cpp \
+       ../GenerateProblem.cpp \
+       ../ComputeSPMV_ref.cpp \
+       ../ComputeSPMV.cpp \
+       ../ExchangeHalo.cpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
