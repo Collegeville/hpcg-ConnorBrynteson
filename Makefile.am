@@ -28,4 +28,6 @@ src/ReportResults.cpp src/ReportResults.hpp src/SetupHalo.cpp src/SetupHalo.hpp 
 src/SetupHalo_ref.cpp src/SetupHalo_ref.hpp src/SparseMatrix.hpp src/TestCG.cpp \
 src/TestCG.hpp src/TestNorms.cpp src/TestNorms.hpp src/TestSymmetry.cpp \
 src/TestSymmetry.hpp src/Vector.hpp src/WriteProblem.cpp src/WriteProblem.hpp \
-src/YAML_Doc.cpp src/YAML_Doc.hpp src/YAML_Element.cpp src/YAML_Element.hpp
+src/YAML_Doc.cpp src/YAML_Doc.hpp src/YAML_Element.cpp src/YAML_Element.hpp \
+src/CompareGeo.cpp src/CompareGeo.hpp src/GeoTest.cpp src/GeoTest.hpp \
+src/TestSuit.cpp src/TestSuit.hpp src/TestResult.hpp

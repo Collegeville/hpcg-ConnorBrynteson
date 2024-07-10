@@ -38,17 +38,20 @@ HPCG_DEPS = src/CG.o \
 	    src/ComputeWAXPBY_ref.o \
 	    src/ComputeMG_ref.o \
 	    src/ComputeMG.o \
+			src/CompareGeo.o \
 	    src/ComputeProlongation_ref.o \
 	    src/ComputeRestriction_ref.o \
 	    src/CheckAspectRatio.o \
 	    src/OutputFile.o \
 	    src/GenerateCoarseProblem.o \
 	    src/init.o \
-	    src/finalize.o
+	    src/finalize.o \
+			src/GeoTest.o \
+			src/TestSuit.o
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/CGData.hpp \
-                  HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpcg.hpp
+                  HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpcg.hpp HPCG_SRC_PATH/src/TestResult.hpp
 
 all: bin/xhpcg
 
@@ -180,3 +183,11 @@ src/CheckAspectRatio.o: HPCG_SRC_PATH/src/CheckAspectRatio.cpp HPCG_SRC_PATH/src
 src/OutputFile.o: HPCG_SRC_PATH/src/OutputFile.cpp HPCG_SRC_PATH/src/OutputFile.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/CompareGeo.o: HPCG_SRC_PATH/src/CompareGeo.cpp HPCG_SRC_PATH/src/CompareGeo.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/GeoTest.o: HPCG_SRC_PATH/src/GeoTest.cpp HPCG_SRC_PATH/src/GeoTest.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/TestSuit.o: HPCG_SRC_PATH/src/TestSuit.cpp HPCG_SRC_PATH/src/TestSuit.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
