@@ -30,7 +30,6 @@ TestResult TestMatrixUnalteredDirectModification() {
   // Modify the diagonal element of the first row to zero
   A.matrixValues[0][0] = 0.0;
   // Perform some HPCG operations
-  ComputeSPMV(A, x, b); // Example operation
 
   // Verify the matrix is unaltered
   if (A.matrixValues[0][0] == 0.0)

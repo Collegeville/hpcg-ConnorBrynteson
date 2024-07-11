@@ -44,26 +44,26 @@
 
   @see ComputeSPMV
 */
-int ComputeSPMV_ref( const SparseMatrix & A, Vector & x, Vector & y) {
+int ComputeSPMV_ref(const SparseMatrix &A, Vector &x, Vector &y) {
 
-	assert(x.localLength == A.localNumberOfColumns);
-	assert(y.localLength == A.localNumberOfRows);
+  assert(x.localLength == A.localNumberOfColumns);
+  assert(y.localLength == A.localNumberOfRows);
 
 #ifndef HPCG_NO_MPI
-    ExchangeHalo(A,x);
+  ExchangeHalo(A, x);
 #endif
-  double * const yv = y.values;
+  double *const yv = y.values;
   const local_int_t nrow = A.localNumberOfRows;
 #ifndef HPCG_NO_OPENMP
-  #pragma omp parallel for
+#pragma omp parallel for
 #endif
-  for (local_int_t i=0; i< nrow; i++)  {
+  for (local_int_t i = 0; i < nrow; i++) {
     double sum = 0.0;
 
     const int cur_nnz = A.nonzerosInRow[i];
 
-    for (int j=0; j< cur_nnz; j++)
-    	sum += A.matrixValues[i][j] * x.values[A.mtxIndG[i][j]];
+    for (int j = 0; j < cur_nnz; j++)
+      sum += A.matrixValues[i][j] * x.values[A.mtxIndG[i][j]];
     yv[i] = sum;
   }
   return 0;

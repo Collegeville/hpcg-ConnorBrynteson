@@ -84,7 +84,6 @@ int main(int argc, char *argv[]) {
 #endif
 
   HPCG_Params params;
-  std::vector<TestResult> results = runAll();
   HPCG_Init(&argc, &argv, params);
 
   // Check if QuickPath option is enabled.
@@ -411,6 +410,7 @@ int main(int argc, char *argv[]) {
   // Report Results //
   ////////////////////
 
+  std::vector<TestResult> results = runAll();
   // Report results to YAML file
   ReportResults(A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters,
                 &times[0], testcg_data, testsymmetry_data, testnorms_data,
