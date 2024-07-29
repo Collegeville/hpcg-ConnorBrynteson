@@ -6,7 +6,7 @@
 #include "TestResult.hpp"
 #include "Vector.hpp"
 #include "hpcg.hpp"
-
+//Changing the col index to a vaid index but one that would not follow the same pattern as HPCG
 TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
                                 local_int_t zl, local_int_t zu, int npx,
                                 int npy, int npz) {
