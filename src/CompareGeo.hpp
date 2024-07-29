@@ -8,9 +8,12 @@ skip the hard stuff lol
 
 #ifndef COMPAREGEO_HPP
 #define COMPAREGEO_HPP
-
+#include "Geometry.hpp"
+#include "SparseMatrix.hpp"
 #include "TestResult.hpp"
 
-TestResult TestMatrixUnalteredDirectModification();
+TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
+                                local_int_t zl, local_int_t zu, int npx,
+                                int npy, int npz);
 
 #endif

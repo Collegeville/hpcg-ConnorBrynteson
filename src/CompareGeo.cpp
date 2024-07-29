@@ -1,38 +1,40 @@
-#include "ComputeSPMV.hpp"
+#include "GenerateGeometry.hpp"
 #include "GenerateProblem.hpp"
+#include "GenerateProblem_ref.hpp"
+#include "Geometry.hpp"
 #include "SparseMatrix.hpp"
 #include "TestResult.hpp"
 #include "Vector.hpp"
-#include <cassert>
-#include <mpi.h>
+#include "hpcg.hpp"
 
-TestResult TestMatrixUnalteredDirectModification() {
-  TestResult result;
-  result.testName = "Test Matrix Unaltered Direct Modification";
-  result.passed = false;
-  Geometry g;
-  g.nx = 3;
-  g.ny = 3;
-  g.nz = 3;
-  g.gnx = 3;
-  g.gny = 3;
-  g.gnz = 3;
-  g.gix0 = 0;
-  g.giy0 = 0;
-  g.giz0 = 0;
-
+TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
+                                local_int_t zl, local_int_t zu, int npx,
+                                int npy, int npz) {
+  TestResult results;
+  results.testName = "Test Non-Uniform Matrix";
+  results.passed = false;
+  HPCG_Params param;
+  Geometry *geom = new Geometry;
+  GenerateGeometry(size, rank, numThreads, pz, zl, zu, 128, 256, 64, npx, npy,
+                   npz, geom);
   SparseMatrix A;
-  A.geom = &g;
+  SparseMatrix B;
+  InitializeSparseMatrix(A, geom);
   Vector b, x, xexact;
-
+  GenerateProblem_ref(A, &b, &x, &xexact);
+  B = A;
   GenerateProblem(A, &b, &x, &xexact);
-
-  // Modify the diagonal element of the first row to zero
-  A.matrixValues[0][0] = 0.0;
-  // Perform some HPCG operations
-
-  // Verify the matrix is unaltered
-  if (A.matrixValues[0][0] == 0.0)
-    result.passed = true;
-  return result;
+  for (int i = 0; i <= A.localNumberOfRows; i++) {
+    int nonZeroA = A.nonzerosInRow[i];
+    for (int j = 0; j < nonZeroA; ++j) {
+      double valueA = A.matrixValues[i][j];
+      double valueB = B.matrixValues[i][j];
+      if (valueA != valueB) {
+        results.passed = false;
+        return results;
+      }
+    }
+  }
+  results.passed = true;
+  return results;
 }
