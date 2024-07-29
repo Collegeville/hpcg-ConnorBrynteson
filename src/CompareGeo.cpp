@@ -16,14 +16,14 @@ TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
   HPCG_Params param;
   Geometry *geom = new Geometry;
   GenerateGeometry(size, rank, numThreads, pz, zl, zu, 128, 256, 64, npx, npy,
-                   npz, geom);
+                   npz, geom); 
   SparseMatrix A;
   SparseMatrix B;
   InitializeSparseMatrix(A, geom);
   Vector b, x, xexact;
   GenerateProblem_ref(A, &b, &x, &xexact);
-  B = A;
-  GenerateProblem(A, &b, &x, &xexact);
+  InitializeSparseMatrix(B, geom);
+  GenerateProblem(B, &b, &x, &xexact);
   for (int i = 0; i <= A.localNumberOfRows; i++) {
     int nonZeroA = A.nonzerosInRow[i];
     for (int j = 0; j < nonZeroA; ++j) {
