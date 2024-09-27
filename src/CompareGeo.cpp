@@ -1,4 +1,4 @@
-#include "ComputeSPMV.hpp"
+#include "ComputeSPMVTest.hpp"
 #include "GenerateGeometry.hpp"
 #include "GenerateProblem.hpp"
 #include "GenerateProblem_ref.hpp"
@@ -14,7 +14,7 @@ TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
                                 local_int_t zl, local_int_t zu, int npx,
                                 int npy, int npz) {
   TestResult results;
-  results.testName = "Test Non-Uniform Matrix";
+  results.testName = "Testing Geometry";
   results.passed = true;
   HPCG_Params param;
   Geometry *geom = new Geometry;
@@ -41,18 +41,9 @@ TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
   InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
   InitializeVector(b_computed, nrow);
   FillRandomVector(x_overlap);
-  auto startTime = std::chrono::steady_clock::now();
-  const int TIMEOUT_SECONDS = 5;
-  while (true) {
-    auto currentTime = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = currentTime - startTime;
 
-    if (elapsed.count() > TIMEOUT_SECONDS) {
-      results.passed = false;
-      break;
-    }
-
-    ComputeSPMV(A, x_overlap, b_computed);
+  if (ComputeSPMVTest(A, x_overlap, b_computed) == -1) {
+    results.passed = false;
   }
   return results;
 }

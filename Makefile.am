@@ -30,4 +30,5 @@ src/TestCG.hpp src/TestNorms.cpp src/TestNorms.hpp src/TestSymmetry.cpp \
 src/TestSymmetry.hpp src/Vector.hpp src/WriteProblem.cpp src/WriteProblem.hpp \
 src/YAML_Doc.cpp src/YAML_Doc.hpp src/YAML_Element.cpp src/YAML_Element.hpp \
 src/CompareGeo.cpp src/CompareGeo.hpp src/GeoTest.cpp src/GeoTest.hpp \
-src/TestSuit.cpp src/TestSuit.hpp src/TestResult.hpp
+src/TestSuit.cpp src/TestSuit.hpp src/TestResult.hpp src/ComputeSPMVTest.cpp \
+src/ComputeSPMVTest.hpp
