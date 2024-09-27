@@ -1,3 +1,4 @@
+#include "ComputeSPMV.hpp"
 #include "GenerateGeometry.hpp"
 #include "GenerateProblem.hpp"
 #include "GenerateProblem_ref.hpp"
@@ -6,35 +7,52 @@
 #include "TestResult.hpp"
 #include "Vector.hpp"
 #include "hpcg.hpp"
-//Changing the col index to a vaid index but one that would not follow the same pattern as HPCG
+#include <chrono>
+// Changing the col index to a vaid index but one that would not follow the same
+// pattern as HPCG
 TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
                                 local_int_t zl, local_int_t zu, int npx,
                                 int npy, int npz) {
   TestResult results;
   results.testName = "Test Non-Uniform Matrix";
-  results.passed = false;
+  results.passed = true;
   HPCG_Params param;
   Geometry *geom = new Geometry;
-  GenerateGeometry(size, rank, numThreads, pz, zl, zu, 128, 256, 64, npx, npy,
-                   npz, geom); 
+  GenerateGeometry(size, rank, numThreads, pz, zl, zu, 64, 64, 64, npx, npy,
+                   npz, geom);
   SparseMatrix A;
-  SparseMatrix B;
   InitializeSparseMatrix(A, geom);
   Vector b, x, xexact;
-  GenerateProblem_ref(A, &b, &x, &xexact);
-  InitializeSparseMatrix(B, geom);
-  GenerateProblem(B, &b, &x, &xexact);
+  GenerateProblem(A, &b, &x, &xexact);
+  int changedRows = 0;
   for (int i = 0; i <= A.localNumberOfRows; i++) {
     int nonZeroA = A.nonzerosInRow[i];
     for (int j = 0; j < nonZeroA; ++j) {
-      double valueA = A.matrixValues[i][j];
-      double valueB = B.matrixValues[i][j];
-      if (valueA != valueB) {
-        results.passed = false;
-        return results;
+      if (changedRows < 5) {
+        A.matrixValues[i][j] = -10;
+        changedRows++;
       }
     }
   }
-  results.passed = true;
+  local_int_t nrow = A.localNumberOfRows;
+  local_int_t ncol = A.localNumberOfColumns;
+
+  Vector x_overlap, b_computed;
+  InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
+  InitializeVector(b_computed, nrow);
+  FillRandomVector(x_overlap);
+  auto startTime = std::chrono::steady_clock::now();
+  const int TIMEOUT_SECONDS = 5;
+  while (true) {
+    auto currentTime = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = currentTime - startTime;
+
+    if (elapsed.count() > TIMEOUT_SECONDS) {
+      results.passed = false;
+      break;
+    }
+
+    ComputeSPMV(A, x_overlap, b_computed);
+  }
   return results;
 }
