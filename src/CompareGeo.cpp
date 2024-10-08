@@ -29,7 +29,7 @@ TestResult TestNonUniformMatrix(int size, int rank, int numThreads, int pz,
     int nonZeroA = A.nonzerosInRow[i];
     for (int j = 0; j < nonZeroA; ++j) {
       if (changedRows < 5) {
-        A.matrixValues[i][j] = -10;
+        A.matrixValues[i][j] = -1000;
         changedRows++;
       }
     }

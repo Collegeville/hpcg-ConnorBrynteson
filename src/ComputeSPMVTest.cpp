@@ -19,7 +19,7 @@
  */
 
 #include "ComputeSPMVTest.hpp"
-#include <chrono>
+#include <iostream>
 #ifndef HPCG_NO_MPI
 #include "ExchangeHalo.hpp"
 #endif
@@ -57,21 +57,20 @@ int ComputeSPMVTest(const SparseMatrix &A, Vector &x, Vector &y) {
 #ifndef HPCG_NO_OPENMP
 #pragma omp parallel for
 #endif
-  auto startTime = std::chrono::steady_clock::now();
-  const int TIMEOUT_SECONDS = 5;
   for (local_int_t i = 0; i < nrow; i++) {
-    auto currentTime = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = currentTime - startTime;
-    if (elapsed.count() > TIMEOUT_SECONDS) {
-      return -1;
-    }
+
     double sum = 0.0;
 
     const int cur_nnz = A.nonzerosInRow[i];
 
-    for (int j = 0; j < cur_nnz; j++)
+    for (int j = 0; j < cur_nnz; j++) {
       sum += A.matrixValues[i][j] * x.values[A.mtxIndG[i][j]];
+    }
+    if (sum <= -10) {
+      return 0;
+    }
     yv[i] = sum;
+    std::cout << yv[i] << std::endl;
   }
-  return 0;
+  return -1;
 }
