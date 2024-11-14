@@ -48,7 +48,8 @@ HPCG_DEPS = src/CG.o \
 	    src/finalize.o \
 			src/GeoTest.o \
 			src/TestSuit.o \
-			src/ComputeSPMVTest.o
+			src/ComputeSPMVTest.o \
+			src/GeneratedTests.o
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/CGData.hpp \
@@ -195,3 +196,7 @@ src/TestSuit.o: HPCG_SRC_PATH/src/TestSuit.cpp HPCG_SRC_PATH/src/TestSuit.hpp $(
 
 src/ComputeSPMVTest.o: HPCG_SRC_PATH/src/ComputeSPMVTest.cpp HPCG_SRC_PATH/src/ComputeSPMVTest.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/GeneratedTests.o: HPCG_SRC_PATH/src/GeneratedTests.cpp HPCG_SRC_PATH/src/GeneratedTests.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
