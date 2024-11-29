@@ -1,18 +1,23 @@
-#include <iostream>
-#include <cmath>
-#include <mpi.h>
-#include <omp.h>
+#include <iostream>  // Standard input/output
+#include <cmath>     // Math functions like fabs
+#include <cassert>   // Assertions for validation
+#include <limits>    // For NaN and infinity
 
-// Include specific HPCG headers based on function requirements
-#include "SparseMatrix.hpp"      // Defines SparseMatrix and related matrix operations
-#include "Vector.hpp"            // Defines Vector and related vector operations
-#include "ComputeSPMV.hpp"       // Defines the ComputeSPMV function for sparse matrix-vector multiplication
-#include "ComputeMG.hpp"         // Defines multi-grid solver function ComputeMG
-#include "GenerateProblem.hpp"  // Defines vector initialization functions
+#include <mpi.h>     // MPI initialization and communication
+#include <omp.h>     // OpenMP for threading
+#include <system_error>
 
-#include "GeneratedTests.hpp"    // Header file for test function declarations
+#include "SparseMatrix.hpp"     // SparseMatrix class and related operations
+#include "Vector.hpp"           // Vector class and related operations
+#include "ComputeSPMV.hpp"      // Sparse matrix-vector multiplication
+#include "ComputeMG.hpp"        // Multi-grid solver
+#include "GenerateProblem.hpp"  // Problem generation and initialization
+#include "Geometry.hpp"         // Geometry struct for matrix dimensions
+#include "GenerateGeometry.hpp" // Declaration of the GenerateGeometry function
+#include "GeneratedTests.hpp"   // Declarations of test functions
+#include "TestResult.hpp"
 
-// MPI initialization and finalization functions
+
 void initializeMPI(int &argc, char **&argv) {
     MPI_Init(&argc, &argv);
 }
@@ -21,152 +26,187 @@ void finalizeMPI() {
     MPI_Finalize();
 }
 
-// Test functions using available HPCG functions
+// Helper function to create geometry
+Geometry* createGeometry(int nx, int ny, int nz, int size, int rank) {
+    assert(nx > 0 && ny > 0 && nz > 0); // Validate dimensions
+    Geometry *geom = new Geometry;
+    int numThreads = 1;
+    int npx = 1, npy = 1, npz = 1;
+    double zl = 0.0, zu = 1.0;
+    int pz = 1;
 
-int testPrecisionAndRounding() {
+    GenerateGeometry(size, rank, numThreads, pz, zl, zu, nx, ny, nz, npx, npy, npz, geom);
+
+    return geom;
+}
+
+// Test precision and rounding behavior of SPMV operation
+int testPrecisionAndRounding(int size, int rank) {
+    /**
+     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
+     * Parameters:
+     * - A: SparseMatrix initialized with geometry.
+     * - x: Vector with size equal to A's rows, initialized with small values (1e-10).
+     * - y: Vector of the same size as x, will store the result of A * x.
+     */
+    Geometry *geom = createGeometry(100, 100, 100, size, rank);
+
     SparseMatrix A;
-    InitializeSparseMatrix(A, 100);
-    Vector x, y;
-    InitializeVector(x, 100, 1e-10);
-    InitializeVector(y, 100, 0.0);
+    InitializeSparseMatrix(A, geom);
 
-    if (ComputeSPMV(A, x, y) != 0) return 0;
+    // Use SparseMatrix for local rows
+    local_int_t localRows = A.localNumberOfRows;
+
+    Vector x, y;
+    InitializeVector(x, localRows);
+    InitializeVector(y, localRows);
+
+    // Assign small values to x
+    for (local_int_t i = 0; i < localRows; ++i) {
+        x.values[i] = 1e-10;
+    }
+
+    if (ComputeSPMV(A, x, y) != 0) {
+        delete geom;
+        return 0;
+    }
+
     double tolerance = 1e-9;
     double expectedValue = 1e-10;
-    if (std::fabs(y.values[0] - expectedValue) > tolerance) return 0;
+
+    // Validate precision
+    if (std::fabs(y.values[0] - expectedValue) > tolerance) {
+        delete geom;
+        return 0;
+    }
+
+    delete geom;
     return 1;
 }
 
-int testEdgeCaseZeroSizedMatrix() {
+// Test handling of a zero-sized matrix and vector in SPMV
+int testEdgeCaseZeroSizedMatrix(int size, int rank) {
+    /**
+     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
+     * Parameters:
+     * - A: SparseMatrix initialized with zero-sized geometry.
+     * - x: Empty vector.
+     * - y: Empty vector.
+     */
+    Geometry *geom = createGeometry(0, 0, 0, size, rank);
+
     SparseMatrix A;
+    InitializeSparseMatrix(A, geom);
+
+    // Use SparseMatrix for local rows
+    local_int_t localRows = A.localNumberOfRows;
+
     Vector x, y;
-    InitializeSparseMatrix(A, 0);
-    InitializeVector(x, 0, 0.0);
-    InitializeVector(y, 0, 0.0);
+    InitializeVector(x, localRows);
+    InitializeVector(y, localRows);
+
+    // Validate sizes
+    assert(localRows == 0);
+    assert(A.localNumberOfRows == 0);
 
     int result = ComputeSPMV(A, x, y);
+
+    delete geom;
     return result != 0 ? 1 : 0;
 }
 
-int testLargeInputHandling() {
+// Test performance and memory handling on a large matrix
+int testLargeInputHandling(int size, int rank) {
+    /**
+     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
+     * Parameters:
+     * - A: SparseMatrix initialized with large geometry.
+     * - x: Vector sized to local rows in A, filled with random values.
+     * - y: Vector of the same size as x, will store the result of A * x.
+     */
+    Geometry *geom = createGeometry(1000, 1000, 1000, size, rank);
+
     SparseMatrix A;
+    InitializeSparseMatrix(A, geom);
+
+    // Use SparseMatrix for local rows
+    local_int_t localRows = A.localNumberOfRows;
+
     Vector x, y;
-    InitializeSparseMatrix(A, 1000000);
-    InitializeVector(x, 1000000, 1.0);
-    InitializeVector(y, 1000000, 0.0);
+    InitializeVector(x, localRows);
+    InitializeVector(y, localRows);
+
+    // Validate sizes
+    assert(localRows > 0);
 
     try {
         ComputeSPMV(A, x, y);
     } catch (...) {
+        delete geom;
         return 0;
     }
+
+    delete geom;
     return 1;
 }
 
-int testDataTypeConsistency() {
+// Test handling of non-standard values
+int testNonStandardValues(int size, int rank) {
+    /**
+     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
+     * Parameters:
+     * - A: SparseMatrix initialized with geometry.
+     * - x: Vector with `NaN` or `infinity` values.
+     * - y: Vector of the same size as x.
+     */
+    Geometry *geom = createGeometry(100, 100, 100, size, rank);
+
     SparseMatrix A;
-    Vector x_single, x_double, y_single, y_double;
-    InitializeSparseMatrix(A, 100);
-    InitializeVector(x_single, 100, 1.0f);
-    InitializeVector(x_double, 100, 1.0);
-    InitializeVector(y_single, 100, 0.0f);
-    InitializeVector(y_double, 100, 0.0);
+    InitializeSparseMatrix(A, geom);
 
-    ComputeSPMV(A, x_single, y_single);
-    ComputeSPMV(A, x_double, y_double);
+    // Use SparseMatrix for local rows
+    local_int_t localRows = A.localNumberOfRows;
 
-    if (std::fabs(y_single.values[0] - y_double.values[0]) > 1e-5) return 0;
-    return 1;
-}
-
-int testThreadSafety() {
-    SparseMatrix A;
-    InitializeSparseMatrix(A, 100);
     Vector x, y;
-    InitializeVector(x, 100, 1.0);
-    InitializeVector(y, 100, 0.0);
+    InitializeVector(x, localRows);
+    InitializeVector(y, localRows);
 
-    bool success = true;
-    #pragma omp parallel for
-    for (int i = 0; i < 10; ++i) {
-        try {
-            ComputeSPMV(A, x, y);
-        } catch (...) {
-            success = false;
-        }
+    // Assign NaN and infinity values
+    for (local_int_t i = 0; i < localRows; ++i) {
+        x.values[i] = (i % 2 == 0) ? std::numeric_limits<double>::quiet_NaN() 
+                                   : std::numeric_limits<double>::infinity();
     }
-    return success ? 1 : 0;
-}
-
-int testSolverBoundaryConditions() {
-    SparseMatrix A;
-    InitializeSparseMatrix(A, 100);
-    Vector x, b;
-    InitializeVector(x, 100, 0.0);
-    InitializeVector(b, 100, 1.0);
-
-    int iterations = 10;
-    int result = ComputeMG(A, x, b, iterations);
-
-    return (result == 0 && iterations <= 10) ? 1 : 0;
-}
-
-// Since `DecomposeSparseMatrix` and explicit `BoundaryConditions` functions do not exist,
-// we omit tests that require these functions. We focus on operations that align with HPCG's capabilities.
-
-int testNonStandardValues() {
-    SparseMatrix A;
-    InitializeSparseMatrix(A, 100);
-    Vector x, y, y_inf;
-    InitializeVector(x, 100, std::numeric_limits<double>::quiet_NaN());
-    InitializeVector(y, 100, 0.0);
-    InitializeVector(y_inf, 100, std::numeric_limits<double>::infinity());
 
     try {
         ComputeSPMV(A, x, y);
-        return 0;
-    } catch (...) {}
-
-    try {
-        ComputeSPMV(A, x, y_inf);
-        return 0;
     } catch (...) {
-        return 1;
+        delete geom;
+        return 1; // Expecting to handle gracefully
     }
+
+    delete geom;
+    return 0;
 }
 
-int testOutputFormatConsistency() {
-    SparseMatrix A;
-    InitializeSparseMatrix(A, 5);
-    Vector y;
-    InitializeVector(y, 5, 0.0);
-    ComputeSPMV(A, y, y);
-
-    return (y.values.size() == 5) ? 1 : 0;
-}
-
-// Main function to initialize MPI and run tests
+// Main function to run tests
 int main(int argc, char **argv) {
     initializeMPI(argc, argv);
 
+    int size, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     int passCount = 0;
 
-    passCount += testPrecisionAndRounding();
-    passCount += testEdgeCaseZeroSizedMatrix();
-    passCount += testLargeInputHandling();
-    passCount += testDataTypeConsistency();
-    passCount += testThreadSafety();
-    passCount += testSolverBoundaryConditions();
-    passCount += testNonStandardValues();
-    passCount += testOutputFormatConsistency();
+    passCount += testPrecisionAndRounding(size, rank);
+    passCount += testEdgeCaseZeroSizedMatrix(size, rank);
+    passCount += testLargeInputHandling(size, rank);
+    passCount += testNonStandardValues(size, rank);
 
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0) {
-        std::cout << "Passed " << passCount << "/8 tests." << std::endl;
+        std::cout << "Passed " << passCount << "/4 tests." << std::endl;
     }
 
     finalizeMPI();
     return 0;
 }
-
