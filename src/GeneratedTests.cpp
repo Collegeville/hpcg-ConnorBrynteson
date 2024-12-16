@@ -5,13 +5,10 @@
 
 #include <mpi.h>     // MPI initialization and communication
 #include <omp.h>     // OpenMP for threading
-#include <system_error>
 
 #include "SparseMatrix.hpp"     // SparseMatrix class and related operations
 #include "Vector.hpp"           // Vector class and related operations
 #include "ComputeSPMV.hpp"      // Sparse matrix-vector multiplication
-#include "ComputeMG.hpp"        // Multi-grid solver
-#include "GenerateProblem.hpp"  // Problem generation and initialization
 #include "Geometry.hpp"         // Geometry struct for matrix dimensions
 #include "GenerateGeometry.hpp" // Declaration of the GenerateGeometry function
 #include "GeneratedTests.hpp"   // Declarations of test functions
