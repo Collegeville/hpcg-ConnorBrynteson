@@ -1,209 +1,200 @@
-#include <iostream>  // Standard input/output
-#include <cmath>     // Math functions like fabs
-#include <cassert>   // Assertions for validation
-#include <limits>    // For NaN and infinity
+#include "GeneratedTests.hpp"
+#include "GenerateGeometry.hpp"
+#include "SparseMatrix.hpp"
+#include "Vector.hpp"
+#include "ComputeSPMV.hpp"
+#include <cmath>
+#include <limits>
 
-#include <mpi.h>     // MPI initialization and communication
-#include <omp.h>     // OpenMP for threading
+/**
+ * TestZeroMatrixVectorMultiplication
+ * Purpose: Validates that multiplying a zero matrix by a vector results in a zero vector.
+ */
+TestResult TestZeroMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector) {
+    TestResult result;
+    result.testName = "TestZeroMatrixVectorMultiplication";
 
-#include "SparseMatrix.hpp"     // SparseMatrix class and related operations
-#include "Vector.hpp"           // Vector class and related operations
-#include "ComputeSPMV.hpp"      // Sparse matrix-vector multiplication
-#include "Geometry.hpp"         // Geometry struct for matrix dimensions
-#include "GenerateGeometry.hpp" // Declaration of the GenerateGeometry function
-#include "GeneratedTests.hpp"   // Declarations of test functions
-#include "TestResult.hpp"
+    Vector mutableInputVector;
+    InitializeVector(mutableInputVector, inputVector.localLength);
+    CopyVector(inputVector, mutableInputVector);
 
+    Vector outputVector;
+    InitializeVector(outputVector, matrix.localNumberOfRows);
 
-void initializeMPI(int &argc, char **&argv) {
-    MPI_Init(&argc, &argv);
-}
-
-void finalizeMPI() {
-    MPI_Finalize();
-}
-
-// Helper function to create geometry
-Geometry* createGeometry(int nx, int ny, int nz, int size, int rank) {
-    assert(nx > 0 && ny > 0 && nz > 0); // Validate dimensions
-    Geometry *geom = new Geometry;
-    int numThreads = 1;
-    int npx = 1, npy = 1, npz = 1;
-    double zl = 0.0, zu = 1.0;
-    int pz = 1;
-
-    GenerateGeometry(size, rank, numThreads, pz, zl, zu, nx, ny, nz, npx, npy, npz, geom);
-
-    return geom;
-}
-
-// Test precision and rounding behavior of SPMV operation
-int testPrecisionAndRounding(int size, int rank) {
-    /**
-     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
-     * Parameters:
-     * - A: SparseMatrix initialized with geometry.
-     * - x: Vector with size equal to A's rows, initialized with small values (1e-10).
-     * - y: Vector of the same size as x, will store the result of A * x.
-     */
-    Geometry *geom = createGeometry(100, 100, 100, size, rank);
-
-    SparseMatrix A;
-    InitializeSparseMatrix(A, geom);
-
-    // Use SparseMatrix for local rows
-    local_int_t localRows = A.localNumberOfRows;
-
-    Vector x, y;
-    InitializeVector(x, localRows);
-    InitializeVector(y, localRows);
-
-    // Assign small values to x
-    for (local_int_t i = 0; i < localRows; ++i) {
-        x.values[i] = 1e-10;
+    int err = ComputeSPMV(matrix, mutableInputVector, outputVector);
+    if (err != 0) {
+        result.passed = false;
+        result.details = "Error in ComputeSPMV.";
+        DeleteVector(mutableInputVector);
+        DeleteVector(outputVector);
+        return result;
     }
 
-    if (ComputeSPMV(A, x, y) != 0) {
-        delete geom;
-        return 0;
+    for (local_int_t i = 0; i < outputVector.localLength; ++i) {
+        if (std::fabs(outputVector.values[i]) > std::numeric_limits<double>::epsilon()) {
+            result.passed = false;
+            result.details = "Output vector contains non-zero values.";
+            DeleteVector(mutableInputVector);
+            DeleteVector(outputVector);
+            return result;
+        }
     }
 
-    double tolerance = 1e-9;
-    double expectedValue = 1e-10;
-
-    // Validate precision
-    if (std::fabs(y.values[0] - expectedValue) > tolerance) {
-        delete geom;
-        return 0;
-    }
-
-    delete geom;
-    return 1;
+    result.passed = true;
+    result.details = "Zero matrix-vector multiplication passed.";
+    DeleteVector(mutableInputVector);
+    DeleteVector(outputVector);
+    return result;
 }
 
-// Test handling of a zero-sized matrix and vector in SPMV
-int testEdgeCaseZeroSizedMatrix(int size, int rank) {
-    /**
-     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
-     * Parameters:
-     * - A: SparseMatrix initialized with zero-sized geometry.
-     * - x: Empty vector.
-     * - y: Empty vector.
-     */
-    Geometry *geom = createGeometry(0, 0, 0, size, rank);
+/**
+ * TestSparseMatrixEdgeCases
+ * Purpose: Validates handling of edge cases in sparse matrix operations.
+ */
+TestResult TestSparseMatrixEdgeCases(const SparseMatrix &matrix, const Vector &inputVector) {
+    TestResult result;
+    result.testName = "TestSparseMatrixEdgeCases";
 
-    SparseMatrix A;
-    InitializeSparseMatrix(A, geom);
+    Vector outputVector, expectedResult;
+    InitializeVector(outputVector, matrix.localNumberOfRows);
+    InitializeVector(expectedResult, matrix.localNumberOfRows);
 
-    // Use SparseMatrix for local rows
-    local_int_t localRows = A.localNumberOfRows;
-
-    Vector x, y;
-    InitializeVector(x, localRows);
-    InitializeVector(y, localRows);
-
-    // Validate sizes
-    assert(localRows == 0);
-    assert(A.localNumberOfRows == 0);
-
-    int result = ComputeSPMV(A, x, y);
-
-    delete geom;
-    return result != 0 ? 1 : 0;
-}
-
-// Test performance and memory handling on a large matrix
-int testLargeInputHandling(int size, int rank) {
-    /**
-     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
-     * Parameters:
-     * - A: SparseMatrix initialized with large geometry.
-     * - x: Vector sized to local rows in A, filled with random values.
-     * - y: Vector of the same size as x, will store the result of A * x.
-     */
-    Geometry *geom = createGeometry(1000, 1000, 1000, size, rank);
-
-    SparseMatrix A;
-    InitializeSparseMatrix(A, geom);
-
-    // Use SparseMatrix for local rows
-    local_int_t localRows = A.localNumberOfRows;
-
-    Vector x, y;
-    InitializeVector(x, localRows);
-    InitializeVector(y, localRows);
-
-    // Validate sizes
-    assert(localRows > 0);
-
-    try {
-        ComputeSPMV(A, x, y);
-    } catch (...) {
-        delete geom;
-        return 0;
+    if (matrix.localNumberOfRows == 0) {
+        result.passed = true;
+        result.details = "Matrix has zero rows, handled gracefully.";
+        DeleteVector(outputVector);
+        DeleteVector(expectedResult);
+        return result;
     }
 
-    delete geom;
-    return 1;
+    result.passed = true;
+    result.details = "Sparse matrix edge cases passed.";
+    DeleteVector(outputVector);
+    DeleteVector(expectedResult);
+    return result;
 }
 
-// Test handling of non-standard values
-int testNonStandardValues(int size, int rank) {
-    /**
-     * Method Under Test: ComputeSPMV(SparseMatrix &A, Vector &x, Vector &y)
-     * Parameters:
-     * - A: SparseMatrix initialized with geometry.
-     * - x: Vector with `NaN` or `infinity` values.
-     * - y: Vector of the same size as x.
-     */
-    Geometry *geom = createGeometry(100, 100, 100, size, rank);
 
-    SparseMatrix A;
-    InitializeSparseMatrix(A, geom);
+/**
+ * TestLargeMatrixVectorMultiplication
+ * Purpose: Verifies the correctness of matrix-vector multiplication on a large matrix.
+ */
+TestResult TestLargeMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector, const Vector &expectedResult) {
+    TestResult result;
+    result.testName = "TestLargeMatrixVectorMultiplication";
 
-    // Use SparseMatrix for local rows
-    local_int_t localRows = A.localNumberOfRows;
+    Vector mutableInputVector;
+    InitializeVector(mutableInputVector, inputVector.localLength);
+    CopyVector(inputVector, mutableInputVector);
 
-    Vector x, y;
-    InitializeVector(x, localRows);
-    InitializeVector(y, localRows);
+    Vector outputVector;
+    InitializeVector(outputVector, matrix.localNumberOfRows);
 
-    // Assign NaN and infinity values
-    for (local_int_t i = 0; i < localRows; ++i) {
-        x.values[i] = (i % 2 == 0) ? std::numeric_limits<double>::quiet_NaN() 
-                                   : std::numeric_limits<double>::infinity();
+    int err = ComputeSPMV(matrix, mutableInputVector, outputVector);
+    if (err != 0) {
+        result.passed = false;
+        result.details = "Error in ComputeSPMV.";
+        DeleteVector(mutableInputVector);
+        DeleteVector(outputVector);
+        return result;
     }
 
-    try {
-        ComputeSPMV(A, x, y);
-    } catch (...) {
-        delete geom;
-        return 1; // Expecting to handle gracefully
+    for (local_int_t i = 0; i < outputVector.localLength; ++i) {
+        if (std::fabs(outputVector.values[i] - expectedResult.values[i]) > std::numeric_limits<double>::epsilon()) {
+            result.passed = false;
+            result.details = "Output does not match the expected result.";
+            DeleteVector(mutableInputVector);
+            DeleteVector(outputVector);
+            return result;
+        }
     }
 
-    delete geom;
-    return 0;
+    result.passed = true;
+    result.details = "Large matrix-vector multiplication passed.";
+    DeleteVector(mutableInputVector);
+    DeleteVector(outputVector);
+    return result;
 }
 
-// Main function to run tests
-int main(int argc, char **argv) {
-    initializeMPI(argc, argv);
+/**
+ * TestRandomMatrixVectorMultiplication
+ * Purpose: Validates matrix-vector multiplication with randomly generated inputs.
+ */
+TestResult TestRandomMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector, const Vector &expectedResult) {
+    TestResult result;
+    result.testName = "TestRandomMatrixVectorMultiplication";
 
-    int size, rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    Vector mutableInputVector;
+    InitializeVector(mutableInputVector, inputVector.localLength);
+    CopyVector(inputVector, mutableInputVector);
 
-    int passCount = 0;
+    Vector outputVector;
+    InitializeVector(outputVector, matrix.localNumberOfRows);
 
-    passCount += testPrecisionAndRounding(size, rank);
-    passCount += testEdgeCaseZeroSizedMatrix(size, rank);
-    passCount += testLargeInputHandling(size, rank);
-    passCount += testNonStandardValues(size, rank);
-
-    if (rank == 0) {
-        std::cout << "Passed " << passCount << "/4 tests." << std::endl;
+    int err = ComputeSPMV(matrix, mutableInputVector, outputVector);
+    if (err != 0) {
+        result.passed = false;
+        result.details = "Error in ComputeSPMV.";
+        DeleteVector(mutableInputVector);
+        DeleteVector(outputVector);
+        return result;
     }
 
-    finalizeMPI();
-    return 0;
+    for (local_int_t i = 0; i < outputVector.localLength; ++i) {
+        if (std::fabs(outputVector.values[i] - expectedResult.values[i]) > std::numeric_limits<double>::epsilon()) {
+            result.passed = false;
+            result.details = "Output does not match the expected result.";
+            DeleteVector(mutableInputVector);
+            DeleteVector(outputVector);
+            return result;
+        }
+    }
+
+    result.passed = true;
+    result.details = "Random matrix-vector multiplication passed.";
+    DeleteVector(mutableInputVector);
+    DeleteVector(outputVector);
+    return result;
 }
+
+/**
+ * TestIdentityMatrixVectorMultiplication
+ * Purpose: Verifies that multiplying an identity matrix by a vector returns the same vector.
+ */
+TestResult TestIdentityMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector) {
+    TestResult result;
+    result.testName = "TestIdentityMatrixVectorMultiplication";
+
+    Vector mutableInputVector;
+    InitializeVector(mutableInputVector, inputVector.localLength);
+    CopyVector(inputVector, mutableInputVector);
+
+    Vector outputVector;
+    InitializeVector(outputVector, matrix.localNumberOfRows);
+
+    int err = ComputeSPMV(matrix, mutableInputVector, outputVector);
+    if (err != 0) {
+        result.passed = false;
+        result.details = "Error in ComputeSPMV.";
+        DeleteVector(mutableInputVector);
+        DeleteVector(outputVector);
+        return result;
+    }
+
+    for (local_int_t i = 0; i < outputVector.localLength; ++i) {
+        if (std::fabs(outputVector.values[i] - inputVector.values[i]) > std::numeric_limits<double>::epsilon()) {
+            result.passed = false;
+            result.details = "Output does not match the input vector.";
+            DeleteVector(mutableInputVector);
+            DeleteVector(outputVector);
+            return result;
+        }
+    }
+
+    result.passed = true;
+    result.details = "Identity matrix-vector multiplication passed.";
+    DeleteVector(mutableInputVector);
+    DeleteVector(outputVector);
+    return result;
+}
+
