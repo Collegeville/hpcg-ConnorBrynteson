@@ -1,5 +1,4 @@
 #include "GeneratedTests.hpp"
-#include "GenerateGeometry.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
 #include "ComputeSPMV.hpp"

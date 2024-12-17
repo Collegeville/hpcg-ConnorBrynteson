@@ -1,45 +1,57 @@
 #include "GeneratedTests.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
+#include "Geometry.hpp"
 #include "GenerateGeometry.hpp"
-#include "Geometry.hpp"  // Include the Geometry definition
 #include <vector>
+#include <iostream>
 
+/**
+ * runAll
+ * Purpose: Runs all tests and collects the results.
+ */
 std::vector<TestResult> runAll(int size, int rank, int numThreads, int pz,
-                               local_int_t zl, local_int_t zu, int npx, int npy,
-                               int npz) {
+                               local_int_t zl, local_int_t zu) {
     std::vector<TestResult> results;
+    int npx = 2, npy = 2, npz = 2;
+    // Validate grid dimensions
+    if (npx <= 0 || npy <= 0 || npz <= 0) {
+        std::cerr << "Error: Grid dimensions (npx, npy, npz) must be greater than zero." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
 
-    // Create and initialize geometry
-    Geometry *geometry = new Geometry;
+    // Local grid dimensions
     local_int_t nx = size / npx;
     local_int_t ny = size / npy;
     local_int_t nz = size / npz;
 
-    GenerateGeometry(size, rank, numThreads, pz, zl, zu, nx, ny, nz, npx, npy, npz, geometry);
+    // Create and initialize geometry
+    Geometry geometry;
+    GenerateGeometry(size, rank, numThreads, pz, zl, zu, nx, ny, nz, npx, npy, npz, &geometry);
 
-    // Initialize matrix and vector
+    // Initialize SparseMatrix
     SparseMatrix testMatrix;
-    InitializeSparseMatrix(testMatrix, geometry);  // Pass Geometry pointer
+    InitializeSparseMatrix(testMatrix, &geometry);
 
-    Vector testVector;
-    InitializeVector(testVector, size);
+    // Ensure input vector size matches matrix columns
+    Vector inputVector;
+    InitializeVector(inputVector, testMatrix.localNumberOfColumns);
 
-    // Run tests
-    results.push_back(TestZeroMatrixVectorMultiplication(testMatrix, testVector));
-    results.push_back(TestSparseMatrixEdgeCases(testMatrix, testVector));
-
-    // Example expected result vector
+    // Ensure output vector size matches matrix rows
     Vector expectedResult;
-    InitializeVector(expectedResult, size);
-    for (local_int_t i = 0; i < expectedResult.localLength; ++i) {
-        expectedResult.values[i] = 1.0;  // Dummy expected values
+    InitializeVector(expectedResult, testMatrix.localNumberOfRows);
+
+    // Populate input vector with example values
+    for (local_int_t i = 0; i < inputVector.localLength; ++i) {
+        inputVector.values[i] = 1.0;  // Example input values
     }
 
-    results.push_back(TestLargeMatrixVectorMultiplication(testMatrix, testVector, expectedResult));
-    results.push_back(TestRandomMatrixVectorMultiplication(testMatrix, testVector, expectedResult));
-    results.push_back(TestIdentityMatrixVectorMultiplication(testMatrix, testVector));
+    // Run tests and collect results
+    results.push_back(TestZeroMatrixVectorMultiplication(testMatrix, inputVector));
+    results.push_back(TestSparseMatrixEdgeCases(testMatrix, inputVector));
+    results.push_back(TestLargeMatrixVectorMultiplication(testMatrix, inputVector, expectedResult));
+    results.push_back(TestRandomMatrixVectorMultiplication(testMatrix, inputVector, expectedResult));
+    results.push_back(TestIdentityMatrixVectorMultiplication(testMatrix, inputVector));
 
     return results;
 }
-
