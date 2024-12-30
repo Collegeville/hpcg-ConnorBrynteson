@@ -119,9 +119,9 @@ int main(int argc, char *argv[]) {
   if (ierr)
     return ierr;
 
-    /////////////////////////
-    // Problem setup Phase //
-    /////////////////////////
+  /////////////////////////
+  // Problem setup Phase //
+  /////////////////////////
 
 #ifdef HPCG_DEBUG
   double t1 = mytimer();
@@ -218,9 +218,9 @@ int main(int argc, char *argv[]) {
               << mytimer() - t1 << endl;
 #endif
 
-    ///////////////////////////////
-    // Reference CG Timing Phase //
-    ///////////////////////////////
+  ///////////////////////////////
+  // Reference CG Timing Phase //
+  ///////////////////////////////
 
 #ifdef HPCG_DEBUG
   t1 = mytimer();
@@ -268,9 +268,9 @@ int main(int argc, char *argv[]) {
     WriteProblem(*geom, A, b, x, xexact);
 #endif
 
-    //////////////////////////////
-    // Validation Testing Phase //
-    //////////////////////////////
+  //////////////////////////////
+  // Validation Testing Phase //
+  //////////////////////////////
 
 #ifdef HPCG_DEBUG
   t1 = mytimer();
@@ -405,12 +405,11 @@ int main(int argc, char *argv[]) {
 
   // Test Norm Results
   ierr = TestNorms(testnorms_data);
-  
+
   ////////////////////
   // Report Results //
   ////////////////////
-  std::vector<TestResult> results =
-      runAll(size, rank, params.numThreads, params.pz, params.zl, params.zu);
+  std::vector<TestResult> results = runAll(size, rank, params.numThreads, params.pz, params.zl, params.zu);
   // Report results to YAML file
   ReportResults(A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters,
                 &times[0], testcg_data, testsymmetry_data, testnorms_data,

@@ -510,7 +510,11 @@ void ReportResults(const SparseMatrix &A, int numberOfMgLevels,
               times[7] / times[8]);
     doc.add("Testing", "");
     for (const auto &result : results) {
-      doc.get("Testing")->add(result.testName, result.passed);
+      if (result.passed != true) {
+        doc.get("Testing")->add(result.testName, result.details);
+      } else {
+        doc.get("Testing")->add(result.testName, result.passed);
+      }
     }
 #ifndef HPCG_NO_MPI
     doc.add("DDOT Timing Variations", "");

@@ -2,14 +2,14 @@
 #define GENERATED_TESTS_HPP
 
 #include "SparseMatrix.hpp"
-#include "Vector.hpp"
 #include "TestResult.hpp"
+#include "Vector.hpp"
 
-extern TestResult TestZeroMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector);
-extern TestResult TestSparseMatrixEdgeCases(const SparseMatrix &matrix, const Vector &inputVector);
-extern TestResult TestLargeMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector, const Vector &expectedResult);
-extern TestResult TestRandomMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector, const Vector &expectedResult);
-extern TestResult TestIdentityMatrixVectorMultiplication(const SparseMatrix &matrix, const Vector &inputVector);
+extern TestResult TestComputeResidual(const Vector &v1, const Vector &v2);
+extern TestResult TestSetupHalo(SparseMatrix &matrix);
+TestResult TestComputeSPMV1(const SparseMatrix &matrix,
+                            const Vector &inputVector);
+extern TestResult TestComputeMG(const SparseMatrix &matrix, const Vector &rhs,
+                                Vector &solution);
 
 #endif // GENERATED_TESTS_HPP
-
