@@ -16,6 +16,7 @@ TestResult TestComputeSPMV1(const SparseMatrix &matrix,
  */
 std::vector<TestResult> runAll(int size, int rank, int numThreads, int pz,
                                local_int_t zl, local_int_t zu) {
+
   std::vector<TestResult> results;
   int npx = 2, npy = 2, npz = 2;
   // Validate grid dimensions
@@ -53,8 +54,15 @@ std::vector<TestResult> runAll(int size, int rank, int numThreads, int pz,
   // Run tests and collect results
   results.push_back(TestComputeResidual(expectedResult, inputVector));
   results.push_back(TestSetupHalo(testMatrix));
-  // results.push_back(TestComputeSPMV1(testMatrix, inputVector));
   results.push_back(TestComputeMG(testMatrix, inputVector, expectedResult));
-
+  results.push_back(TestStringManipulation());
+  results.push_back(TestIteratorManipulation());
+  results.push_back(TestEmptyAndLargeVector());
+  results.push_back(TestLocaleSpecificOutput());
+  results.push_back(TestSparseMatrixWithDiagonalDominance());
+  // results.push_back(TestVectorInitializationErrors());
+  results.push_back(TestSparseMatrixNullPointer());
+  // results.push_back(TestLargeSparseMatrix());
+  results.push_back(TestBoundaryVectorInitialization());
   return results;
 }

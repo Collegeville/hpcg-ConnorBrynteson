@@ -409,7 +409,8 @@ int main(int argc, char *argv[]) {
   ////////////////////
   // Report Results //
   ////////////////////
-  std::vector<TestResult> results = runAll(size, rank, params.numThreads, params.pz, params.zl, params.zu);
+  std::vector<TestResult> results =
+      runAll(size, rank, params.numThreads, params.pz, params.zl, params.zu);
   // Report results to YAML file
   ReportResults(A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters,
                 &times[0], testcg_data, testsymmetry_data, testnorms_data,
