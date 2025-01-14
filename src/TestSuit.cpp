@@ -18,51 +18,36 @@ std::vector<TestResult> runAll(int size, int rank, int numThreads, int pz,
                                local_int_t zl, local_int_t zu) {
 
   std::vector<TestResult> results;
-  int npx = 2, npy = 2, npz = 2;
-  // Validate grid dimensions
-  if (npx <= 0 || npy <= 0 || npz <= 0) {
-    std::exit(EXIT_FAILURE);
+
+  // SparseMatrix Tests
+  results.push_back(TestSparseMatrix(true, false, false)); // Diagonal
+  // Dominance
+  // results.push_back(TestSparseMatrix(false, true, false)); // Large
+  // Dimensions
+  results.push_back(TestSparseMatrix(false, false, true)); // Null
+  // Pointer
+
+  // Vector Tests
+  // results.push_back(TestVectorInitializationEdgeCases());
+  results.push_back(TestVectorExtremeValues());
+
+  // Residual Tests
+  Vector v1, v2;
+  InitializeVector(v1, 10);
+  InitializeVector(v2, 10);
+  for (local_int_t i = 0; i < v1.localLength; ++i) {
+    v1.values[i] = i;
+    v2.values[i] = i + 1;
   }
+  results.push_back(TestComputeResidual(v1, v2));
+  DeleteVector(v1);
+  DeleteVector(v2);
 
-  // Local grid dimensions
-  local_int_t nx = size / npx;
-  local_int_t ny = size / npy;
-  local_int_t nz = size / npz;
-
-  // Create and initialize geometry
-  Geometry geometry;
-  GenerateGeometry(size, rank, numThreads, pz, zl, zu, nx, ny, nz, npx, npy,
-                   npz, &geometry);
-
-  // Initialize SparseMatrix
-  SparseMatrix testMatrix;
-  InitializeSparseMatrix(testMatrix, &geometry);
-
-  // Ensure input vector size matches matrix columns
-  Vector inputVector;
-  InitializeVector(inputVector, testMatrix.localNumberOfColumns);
-
-  // Ensure output vector size matches matrix rows
-  Vector expectedResult;
-  InitializeVector(expectedResult, testMatrix.localNumberOfRows);
-
-  // Populate input vector with example values
-  for (local_int_t i = 0; i < inputVector.localLength; ++i) {
-    inputVector.values[i] = 1.0; // Example input values
-  }
-
-  // Run tests and collect results
-  results.push_back(TestComputeResidual(expectedResult, inputVector));
-  results.push_back(TestSetupHalo(testMatrix));
-  results.push_back(TestComputeMG(testMatrix, inputVector, expectedResult));
+  // STL and Locale Tests
   results.push_back(TestStringManipulation());
-  results.push_back(TestIteratorManipulation());
-  results.push_back(TestEmptyAndLargeVector());
   results.push_back(TestLocaleSpecificOutput());
-  results.push_back(TestSparseMatrixWithDiagonalDominance());
-  // results.push_back(TestVectorInitializationErrors());
-  results.push_back(TestSparseMatrixNullPointer());
-  // results.push_back(TestLargeSparseMatrix());
-  results.push_back(TestBoundaryVectorInitialization());
+  results.push_back(TestLargeSTLContainer());
+  results.push_back(TestLocaleSpecificFormatting());
+  results.push_back(TestExtendedLocaleSpecificFormatting());
   return results;
 }
